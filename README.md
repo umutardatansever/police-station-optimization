@@ -36,6 +36,12 @@ büyük ve kararlı iyileşme: yöntem **şehirden ve ülkeden bağımsız** ça
 Zamansal doğrulama (ilk 6 ay eğitim → son 6 ay test) yerleşimlerin zamana
 dayanıklı olduğunu göstermektedir.
 
+**Verimlilik senaryosu (Londra, p=80):** duyarlılık eğrisindeki başabaş noktası
+ayrı bir senaryo olarak üretilmiştir (`senaryo_p80.py` →
+`sonuclar/london/p80/`): optimize yerleşimle **80 karakol**, mevcut 148 tesisin
+ortalama erişim mesafesini korurken (1,307 ↔ 1,311 km) 3 km kapsamayı
+%93,9'dan %97,3'e çıkarmaktadır — **%46 daha az tesisle aynı/daha iyi hizmet.**
+
 ---
 
 ## Yöntem
@@ -75,8 +81,9 @@ dayanıklı olduğunu göstermektedir.
 
 ```
 polis_optimizasyon.py     # tüm pipeline (çok-şehirli)
-data/
-  london/                 # police.uk aylık CSV'leri (Metropolitan + City of London)
+senaryo_p80.py            # verimlilik senaryosu (başabaş noktası, örn. p=80)
+data/                     # ham veri — depoda YOK (346 MB, .gitignore'da);
+  london/                 #   aşağıdaki kaynaklardan indirilir
   west-midlands/          # police.uk aylık CSV'leri
   chicago/                # Chicago Data Portal (SODA API) CSV'si
 sonuclar/
@@ -88,6 +95,7 @@ sonuclar/
     metrik_ozet.csv
     optimum_karakol_konumlari.csv
     devriye_turu.csv
+  london/p80/             # verimlilik senaryosu çıktıları (harita, metrikler, CSV)
 ```
 
 ## Veri kaynakları
@@ -106,6 +114,8 @@ pip install numpy pandas scikit-learn networkx matplotlib folium osmnx pyproj pu
 python polis_optimizasyon.py london          # tek şehir
 python polis_optimizasyon.py chicago
 python polis_optimizasyon.py all             # üç şehir sırayla
+
+python senaryo_p80.py london 80              # verimlilik senaryosu (başabaş p)
 ```
 
 - **İnternet:** mevcut karakollar ve yol ağı OSM'den indirilir (önbelleklenir).
