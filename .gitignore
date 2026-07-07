@@ -1,0 +1,10 @@
+cache/
+__pycache__/
+*.pyc
+
+# Ham suç verisi (346 MB — GitHub limitlerini aşar; data.police.uk /
+# data.cityofchicago.org üzerinden indirilir, bkz. README)
+data/
+
+# Yerel Claude Code ayarları
+.claude/

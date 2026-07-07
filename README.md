@@ -1,124 +1,128 @@
-# Londra Suc Analizi ve Devriye Rotası Optimizasyonu Projesi
-## Algoritma Analizi Dersi Final Projesi
+# Veri Güdümlü Polis Karakolu Yerleşim ve Devriye Rotası Optimizasyonu
+## Londra · Birmingham (West Midlands) · Chicago — Üç Şehirli Karşılaştırmalı Çalışma
 
-Bu proje, Londra sehrine ait gercek suc verilerini yukleyerek makine ogrenmesi ve graf teorisi tabanlı yaklasımlarla analiz eder. Projenin ana amacı, suc yogunlugunun yuksek oldugu bolgeleri (sıcak noktalar / hot-spots) tespit etmek, bu noktalara yerlestirilecek merkez karakollar icin en uygun konumları belirlemek ve bu istasyonlar arasında optimize edilmis polis devriye rotaları ile minimum maliyetli yayılım agları (MST) olusturmaktır. Proje kapsamında kullanılan tum algoritmaların zaman ve bellek karmasıklıgı performansları deneysel olarak olculmekte ve analiz edilmektedir.
+Suç-talep-ağırlıklı **tesis yerleşim optimizasyonu** (p-Median + MCLP) ve gerçek
+yol ağı üzerinde **devriye turu rotalama** (Christofides TSP) çalışması.
+Üç şehirde, 12'şer aylık gerçek suç kayıtlarının tamamı kullanılarak, mevcut
+polis tesislerine kıyasla veri güdümlü yerleşimin hizmet kalitesini ne kadar
+artırabileceği nicel olarak gösterilmektedir.
 
----
-
-## Proje Hedefleri
-
-1. **Yogunluk ve Kumeleme Analizi:** Londra sınırları icindeki buyuk boyutlu suc verilerini kumeleyerek dogal suc odak noktalarını (merkezleri) saptamak ve veri yogunlugunu analiz etmek.
-2. **Rota Optimizasyonu:** Belirlenen suc odak noktaları arasında dolasacak ekipler icin en kısa yolları hesaplamak ve tum merkezleri birbirine baglayan en dusuk maliyetli devriye agını (Minimum Spanning Tree) kurmak.
-3. **Deneysel Algoritmik Karşılaştırma:** K-Means, DBSCAN, Dijkstra, A* ve Prim's MST algoritmalarının yurutum surelerini (time) ve pik bellek tuketimlerini (memory) deneysel olarak gozlemlemek ve teorik karmasıklık analizleriyle kıyaslamak.
-4. **Zengin ve İnteraktif Gorsellestirme:** Coğrafi analizleri interaktif bir harita uzerinde katmanlar halinde sunmak ve performans analizlerini profesyonel grafiklerle raporlamak.
+> Projenin eski sürümden (kümeleme/en kısa yol benchmark'ı) bu haline nasıl ve
+> neden dönüştürüldüğü için bkz. **[PROJE_NE_OLDU.md](PROJE_NE_OLDU.md)**.
 
 ---
 
-## Algoritma Mimarisi ve Teorik Karmasıklık Analizi
+## Araştırma sorusu
 
-Proje kapsamında uygulanan algoritmaların kullanım amacları, teorik zaman ve alan karmasıklıkları asagıdaki tabloda detaylandırılmıstır:
+**Polis karakolu yerleşimi, veri güdümlü optimizasyonla ne kadar daha kaliteli
+hale getirilebilir — ve bu kazanç şehirden/ülkeden bağımsız mıdır?**
 
-| Algoritma | Kullanım Amacı | Zaman Karmasıklıgı (Time Complexity) | Alan Karmasıklıgı (Space Complexity) |
+## Ana bulgular (üç şehir, 12'şer ay, tam veri)
+
+| | **Londra** | **Birmingham (WM)** | **Chicago** |
 | :--- | :--- | :--- | :--- |
-| **K-Means** | Suc odak noktalarının (karakol koordinatlarının) saptanması | O(n * k * i * d) | O(n * d) |
-| **DBSCAN** | Yogunluk tabanlı kumeleme ve gurultu verilerin ayıklanması | O(n * log n) ila O(n^2) | O(n) |
-| **Dijkstra** | Baslangıc karakolundan diger tum noktalara en kısa yolların bulunması | O((V + E) * log V) | O(V + E) |
-| **A\* (A-Star)** | Belirli iki karakol arasında sezgisel en kısa yol hesabı | O(E * log V) (Kotu senaryoda) | O(V) |
-| **Prim's MST** | Tum karakolları baglayan optimum devriye agının tasarımı | O(E * log V) | O(V + E) |
+| Suç kaydı (12 ay) | 1.142.789 | 287.176 | 234.332 |
+| Mevcut tesis (OSM) | 148 | 66 | 112 |
+| Ort. mesafe: mevcut → p-Median | 1,311 → 0,936 km | 1,588 → 1,051 km | 1,516 → 0,706 km |
+| **İyileşme (eşit p)** | **%28,6** | **%33,8** | **%53,5** |
+| 3 km kapsama: mevcut → MCLP | %93,9 → %100 | %87,7 → %100 | %97,2 → %100 |
+| Mevcut mesafe seviyesi kaç tesisle yakalanır | p=80 (%46 az) | p=40 (%39 az) | p=30 (%73 az) |
+| Sezgisel–MILP optimalite açığı | %0,000 | %0,42 | %0,000 |
+| Zamansal dış-örneklem açığı | %−0,15 | %1,03 | %0,54 |
+| Devriye turu (p=20, gerçek yol) | 202,0 km | 182,4 km | 142,4 km |
 
-### Degisken Tanımları
-* **n:** Toplam suc veri noktası sayısı (Varsayılan limit: 50.000 veri satırı).
-* **k:** K-Means icin hedeflenen kume sayısı (Projede k = 15 olarak set edilmistir).
-* **i:** Algoritmanın yakınsama icin yaptıgı maksimum iterasyon sayısı.
-* **d:** Boyut sayısı (Cografi enlem ve boylam analizi yapıldıgı icin d = 2).
-* **V:** Graf uzerindeki dugum (vertex) sayısı (K-Means sonucunda olusan k = 15 merkez istasyon).
-* **E:** Karakollar arasındaki baglantı yolları (Graf tam baglantılı - complete graph - oldugundan E = V * (V - 1) / 2).
-
----
-
-## Veri Yukleme ve Onișleme Modulu
-
-Veri yuku `RealCrimeDataLoader` sınıfı vasıtasıyla gercek zamanlı olarak `london_crime.csv` dosyasından okunur. Veri seti uzerinde asagıdaki onislemler yurutulur:
-* **Eksik Veri Temizligi:** Enlem (Latitude) ve boylam (Longitude) bilgisi eksik olan satırlar tespit edilerek veri setinden cıkarılır.
-* **Standartlastırma:** Sutun isimleri cografi kutuphanelerle uyumlu olması acısından `lat`, `lon` ve `type` (suc turu) olarak yeniden adlandırılır.
-* **Cografi Filtreleme (Outlier Detection):** Londra sınırları dısındaki koordinat hatalarını ayıklamak amacıyla sadece `51.28 < lat < 51.70` enlemleri ile `-0.55 < lon < 0.35` boylamları arasındaki veriler kabul edilir.
-* **Buyuk Veri Orneklemesi (Sampling):** Coğrafi veri yukunsuz calısmak ve analizi optimize etmek adına yuklenen buyuk veri setinden rastgele 50.000 kayıt secilir.
+Üç farklı şehir morfolojisi ve iki farklı ülkenin veri şemasında aynı yönde,
+büyük ve kararlı iyileşme: yöntem **şehirden ve ülkeden bağımsız** çalışmaktadır.
+Zamansal doğrulama (ilk 6 ay eğitim → son 6 ay test) yerleşimlerin zamana
+dayanıklı olduğunu göstermektedir.
 
 ---
 
-## Moduller ve Islevsel Detaylar
+## Yöntem
 
-### 1. Kumeleme Analiz Modulu (ClusteringAnalyzer)
-* **K-Means:** Verilen konum verilerini belirlenen kume sayısı kadar bolgeye ayırır. Elde edilen kume merkezleri (centroids), kurulması gereken polis karakolları veya devriye merkezleri olarak kabul edilir.
-* **DBSCAN:** Yogunluk tabanlı calısarak yakın konumdaki suc olaylarını kume haline getirir. Gurultu (noise) parametresi sayesinde izole kalmıs tekil suc olaylarını ayırt eder. Cografi yogunluk yarıcapı `eps = 0.005` ve minimum komsu eleman sayısı `min_samples = 15` olarak yapılandırılmıstır.
+### 1. Talep modeli
+- 12 aylık kayıtların tamamı (örnekleme yok), şehir sınır kutusu filtresi.
+- Koordinatlar şehre uygun **metrik projeksiyona** dönüştürülür
+  (Britanya: EPSG:27700, Chicago: UTM 16N / EPSG:26916).
+- Suçlar, **Cambridge Crime Harm Index'ten esinlenen önem ağırlıklarıyla**
+  (şiddet 10 · soygun/silah 8 · konut hırsızlığı 5 · … · asayiş 1; Chicago
+  kategorileri aynı ölçeğe eşlenmiştir) ağırlıklandırılır ve **500 m ızgara
+  hücrelerinde** toplulaştırılır.
+- Aday tesis konumları: şehre yayılı **1 km ızgara** hücreleri.
 
-### 2. Rota Optimizasyon Modulu (RouteOptimizer)
-* **Mesafe Metrigi:** Dunya yuzeyindeki egriligi hesaba katan Haversine formulu kullanılarak karakol koordinatları arasındaki gercek kusucusu mesafe (kilometre cinsinden) hesaplanır.
-* **Graf Kurulumu:** Belirlenen karakol dugumleri arasında tam baglantılı (complete graph), kenar agırlıkları Haversine mesafeleri olan yonsuz bir graf insa edilir.
-* **Dijkstra Algoritması:** Min-Heap (oncelik kuyrugu) veri yapısı kullanılarak belirlenen baslangıc karakolundan diger tum istasyonlara giden en kısa yolları ve toplam yol maliyetlerini hesaplar.
-* **A\* (A-Star) Algoritması:** Hedef tabanlı en kısa yol analizi yapar. Algoritmanın sezgisel (heuristic) fonksiyonu olarak dugumler arasındaki Haversine cografi mesafesi kullanılmıstır. Bu sezgisel fonksiyon gercek mesafeden asla buyuk olamayacagı icin kabul edilebilir (admissible) ve tutarlıdır (consistent).
-* **Prim Algoritması (MST):** Tum istasyonları en az bir hatla birbirine baglayan, hicbir dongu icermeyen ve toplam yol uzunlugu minimum olan agacı (Minimum Spanning Tree) uretir. Bu agac, bolge genelindeki en tasarruflu devriye devresini simgeler.
+### 2. Optimizasyon modelleri
 
-### 3. Gorsellestirme ve Raporlama Modulu (Visualizer)
-* **İnteraktif Harita (londra_final_analiz.html):** Folium kutuphanesi kullanılarak Dark Mode (cartodbdark_matter) stilinde interaktif bir harita uretilir. Harita asagıdaki katmanlardan olusur ve bu katmanlar sag ustteki panelden acılıp kapatılabilir:
-  * *Suc Isı Haritası (HeatMap):* Suc olaylarının yogunlastıgı alanları gosterir (`radius = 13`, `blur = 10`, `min_opacity = 0.3`).
-  * *Karakol Noktaları:* K-Means ile belirlenen 15 adet merkez karakol kalkan simgesiyle haritada konumlandırılır. Ayrıca her karakolun etrafına 1.5 kilometrelik kapsama alanını temsil eden dairesel bolgeler cizilir.
-  * *Optimum Devriye Rotası (MST):* Prim's MST tarafından uretilen agac baglantıları neon turkuaz (`#00ffff`) cizgilerle haritada gosterilir. Her bir cizginin uzerine gelindiginde iki karakol arasındaki Haversine mesafesi tooltip olarak gosterilir.
-* **Performans Raporu Grafikleme (performans_stats.png):** Matplotlib kutuphanesi kullanılarak karanlık tema arka planında iki ayrı grafik cizdirilir:
-  * Algoritmaların milisaniye hassasiyetindeki islem yurutum sureleri.
-  * Algoritmaların pik seviyedeki bellek kullanımları (Megabayt cinsinden).
+| Model | Amaç fonksiyonu | Çözüm |
+| :--- | :--- | :--- |
+| **p-Median** | min Σᵢ wᵢ · min_{j∈S} d(i,j), \|S\| = p | Açgözlü kurulum + **Teitz-Bart** yerel arama |
+| **p-Median (kesin)** | aynı | **PuLP / CBC MILP** — sezgiselin optimalite açığını doğrular |
+| **MCLP** | max Σᵢ wᵢ zᵢ; zᵢ ≤ Σ_{j: d≤3km} yⱼ; Σyⱼ = p | Açgözlü (1−1/e garantili) + **kesin MILP** |
+| **Devriye turu** | kapalı tur uzunluğu | **Christofides** (≤1,5·OPT) — gerçek OSM yol-ağı mesafeleriyle; MST alt sınır olarak raporlanır |
+
+### 3. Kıyas ve doğrulama
+- **Mevcut durum kıyası:** her şehirde OSM'den gerçek polis tesisleri
+  (`amenity=police`) çekilir ve aynı metriklerle değerlendirilir.
+- **Metrikler:** talep-ağırlıklı ortalama/medyan/maksimum mesafe; 1/2/3/5 km
+  yarıçaplarda kapsanan talep yüzdesi.
+- **Zamansal dış-örneklem doğrulama:** ilk 6 ayda seçilen yerleşim, son 6 ayın
+  talebiyle test edilir ve test döneminin kendi optimumuyla kıyaslanır.
+- **p duyarlılık analizi:** 13 senaryo ile karakol sayısı ↔ hizmet kalitesi
+  ödünleşim eğrileri.
 
 ---
 
-## Proje Dizin Yapısı
+## Dizin yapısı
 
-* **sucpy.py:** Projenin veri yukleme, kumeleme, rota hesaplama ve gorsellestirme adımlarını yoneten tekil Python kaynak kod dosyası.
-* **london_crime.csv:** Londra genelindeki gercek suc olaylarının koordinatlarını ve kategorilerini iceren ana veri seti.
-* **londra_final_analiz.html:** Uretilen interaktif Folium coğrafi analiz haritası.
-* **performans_stats.png:** Deneysel bellek ve zaman performans raporunu barındıran grafik dosyası.
-
----
-
-## Kurulum ve Sistem Gereksinimleri
-
-Programın sorunsuz calısması icin sisteminizde Python 3.8+ surumunun ve asagıdaki kütüphanelerin yuklu olması gerekmektedir.
-
-Gerekli paketleri yuklemek icin terminal uzerinden asagıdaki komutu calıstırabilirsiniz:
-
-```bash
-pip install numpy pandas scikit-learn networkx matplotlib folium
+```
+polis_optimizasyon.py     # tüm pipeline (çok-şehirli)
+data/
+  london/                 # police.uk aylık CSV'leri (Metropolitan + City of London)
+  west-midlands/          # police.uk aylık CSV'leri
+  chicago/                # Chicago Data Portal (SODA API) CSV'si
+sonuclar/
+  <şehir>/                # her şehrin çıktıları:
+    optimizasyon_haritasi.html    # interaktif harita (ısı + mevcut/önerilen + devriye)
+    p_duyarlilik_analizi.png/.csv
+    kapsama_karsilastirmasi.png
+    dis_orneklem_dogrulama.png
+    metrik_ozet.csv
+    optimum_karakol_konumlari.csv
+    devriye_turu.csv
 ```
 
----
+## Veri kaynakları
 
-## Kullanım Kılavuzu
+| Şehir | Kaynak | Erişim |
+| :--- | :--- | :--- |
+| Londra, West Midlands | police.uk açık veri arşivi | `https://data.police.uk/data/archive/latest.zip` (aylık `*-street.csv` dosyaları `data/<şehir>/` altına) |
+| Chicago | Chicago Data Portal (SODA API) | `https://data.cityofchicago.org/resource/ijzp-q8t2.csv?$select=date,primary_type,latitude,longitude&$where=...` |
+| Mevcut karakollar + yol ağları | OpenStreetMap | çalışma anında `osmnx` ile otomatik |
 
-Analiz sureclerini baslatmak, haritayı ve performans grafiklerini uretmek icin proje dizinindeyken terminalden su komutu calıstırın:
+## Kurulum ve çalıştırma
 
 ```bash
-python sucpy.py
+pip install numpy pandas scikit-learn networkx matplotlib folium osmnx pyproj pulp
+
+python polis_optimizasyon.py london          # tek şehir
+python polis_optimizasyon.py chicago
+python polis_optimizasyon.py all             # üç şehir sırayla
 ```
 
-Uygulama calıstırıldıgında su adımlar sırasıyla gerceklesecektir:
-1. `london_crime.csv` dosyası aranır ve yuklenir.
-2. 50.000 satırlık veriye K-Means ve DBSCAN kumeleme algoritmaları uygulanır.
-3. K-Means merkezleri uzerinde Dijkstra, A* ve Prim's MST algoritmaları ile rota analizleri yurutulur.
-4. Elde edilen sonuclarla `londra_final_analiz.html` interaktif haritası ve `performans_stats.png` performans grafigi olusturularak dizine kaydedilir.
-5. Algoritmaların deneysel calısma sureleri ile bellek tuketim metrikleri terminal ekranına yazdırılır.
+- **İnternet:** mevcut karakollar ve yol ağı OSM'den indirilir (önbelleklenir).
+  Erişim yoksa program kuş uçuşu mesafeye düşerek kesintisiz devam eder.
+- **Süre:** Londra ~15 dk, Birmingham ~4 dk, Chicago ~2 dk (ilk koşumda yol ağı
+  indirme dahil). **PuLP** yoksa kesin MILP doğrulaması atlanır.
 
----
+## Kısıtlar
 
-## Deneysel Bulgular ve Performans Raporlama Metotları
-
-Projede algoritmik yurutum surelerinin dogru hesaplanması amacıyla yuksek cozunurluklu `time.time()` olcumleri kullanılmıstır. Bellek analizi icin Python standart kutuphanesinde yer alan ve yurutum sırasındaki pik bellek tahsisatını (peak memory allocation) donen `tracemalloc` modulunden yararlanılmıstır. 
-
-* Kumeleme fazında, K-Means veri seti genelinde kararlı merkezler uretirken, DBSCAN yogunluk sınırlarına gore gurultuleri basarıyla ayıklamaktadır.
-* Rota optimizasyonu fazında, Prim's MST algoritması tum istasyonları birbirine baglayan en ekonomik ag baglantısını kurarak Dijkstra rotalarının toplamına kıyasla daha verimli bir toplam yol uzunlugu saglamaktadır.
-* A* arama algoritması, Haversine sezgisel fonksiyonunu kullanarak hedef odaklı yol bulma islemlerinde Dijkstra'ya gore daha odaklı bir dugum taraması yapmaktadır.
-
----
+- OSM `amenity=police` etiketi küçük polis noktalarını da içerebilir; resmi
+  tesis listeleriyle çapraz doğrulama gelecek çalışmadır.
+- Yerleşim fazında mesafeler projeksiyonlu Öklid'dir (devriye fazında gerçek yol
+  ağı kullanılır).
+- Tesis kurulum maliyeti, kapasite ve personel kısıtları modellenmemiştir.
+- Devriye turu/MST oranındaki 1,5 garantisi TSP optimumuna göredir; MST'ye göre
+  oran 1,5'i marjinal aşabilir.
 
 ## Lisans
 
-Bu proje MIT Lisansı ile lisanslanmıştır. Detaylar için LICENSE dosyasına bakabilirsiniz.
-
+MIT — bkz. [LICENSE](LICENSE).
